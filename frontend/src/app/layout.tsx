@@ -16,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="flex flex-col min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-white">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <body className="flex flex-col min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-white" suppressHydrationWarning>
         <Web3Provider>
           {/* Header */}
           <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
