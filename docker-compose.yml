@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: predictx-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: prediction_market
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  hardhat-node:
+    build:
+      context: ./contracts
+      dockerfile: Dockerfile
+    container_name: predictx-hardhat
+    ports:
+      - "8545:8545"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: predictx-backend
+    ports:
+      - "4000:4000"
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/prediction_market?schema=public"
+      RPC_URL: "http://hardhat-node:8545"
+      CONTRACT_ADDRESS: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      PORT: 4000
+    depends_on:
+      db:
+        condition: service_healthy
+      hardhat-node:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: predictx-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:4000/api"
+      NEXT_PUBLIC_MANAGER_ADDRESS: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      NEXT_PUBLIC_USDC_ADDRESS: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
