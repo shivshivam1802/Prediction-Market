@@ -1,0 +1,91 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+model User {
+  wallet     String    @id
+  username   String?
+  reputation Int       @default(0)
+  createdAt  DateTime  @default(now())
+  comments   Comment[]
+  trades     Trade[]
+}
+
+model Market {
+  id                  Int                  @id // matches blockchain market ID
+  title               String
+  description         String
+  category            String
+  expirationTimestamp DateTime
+  resolved            Boolean              @default(false)
+  outcome             Int                  @default(0) // 0: Unresolved, 1: YES, 2: NO, 3: Invalid
+  yesSharesPool       String               @default("0")
+  noSharesPool        String               @default("0")
+  lpTokenTotalSupply  String               @default("0")
+  oracleUrl           String
+  creator             String
+  volume              String               @default("0") // Cumulative USDC volume
+  openInterest        String               @default("0") // Active collateral in contract
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  trades              Trade[]
+  priceHistory        MarketPriceHistory[]
+  comments            Comment[]
+  liquidity           Liquidity[]
+}
+
+model Trade {
+  id               String   @id // txHash + "-" + index
+  txHash           String
+  userWallet       String
+  marketId         Int
+  isYes            Boolean
+  isBuy            Boolean
+  collateralAmount String
+  sharesAmount     String
+  price            Float // price of 1 share in USDC (0.0 to 1.0)
+  timestamp        DateTime @default(now())
+
+  user   User   @relation(fields: [userWallet], references: [wallet])
+  market Market @relation(fields: [marketId], references: [id])
+}
+
+model Liquidity {
+  id               String   @id // txHash + "-" + index
+  txHash           String
+  providerWallet   String
+  marketId         Int
+  type             String // "ADD" or "REMOVE"
+  collateralAmount String
+  lpShares         String
+  timestamp        DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id])
+}
+
+model MarketPriceHistory {
+  id        String   @id @default(uuid())
+  marketId  Int
+  yesPrice  Float
+  noPrice   Float
+  timestamp DateTime @default(now())
+
+  market Market @relation(fields: [marketId], references: [id])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  marketId  Int
+  userWallet String
+  content    String
+  timestamp  DateTime @default(now())
+
+  user   User   @relation(fields: [userWallet], references: [wallet])
+  market Market @relation(fields: [marketId], references: [id])
+}
